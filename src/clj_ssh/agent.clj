@@ -8,14 +8,20 @@
     AgentProxyException Connector RemoteIdentityRepository]
    [com.jcraft.jsch.agentproxy.connector
     PageantConnector SSHAgentConnector]
+   com.jcraft.jsch.agentproxy.usocket.NCUSocketFactory
    com.jcraft.jsch.agentproxy.usocket.JNAUSocketFactory))
 
 (defn sock-agent-connector
   []
   (when (SSHAgentConnector/isConnectorAvailable)
     (try
-      (let [usf (JNAUSocketFactory.)]
-        (SSHAgentConnector. usf))
+      (cond
+        (not= (.indexOf (System/getProperty "os.name") "Windows") -1)
+        (let [usf (NCUSocketFactory.)]
+          (SSHAgentConnector. usf))
+        :else
+        (let [usf (JNAUSocketFactory.)]
+          (SSHAgentConnector. usf)))
       (catch AgentProxyException e
         (logging/warnf
          e "Failed to load JNA connector, although SSH_AUTH_SOCK is set")))))
